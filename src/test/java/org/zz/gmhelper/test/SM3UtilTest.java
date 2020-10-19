@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.zz.gmhelper.SM3Util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class SM3UtilTest extends GMBaseTest {
@@ -14,6 +15,22 @@ public class SM3UtilTest extends GMBaseTest {
             byte[] hash = SM3Util.hash(SRC_DATA);
             System.out.println("SM3 hash result:\n" + ByteUtils.toHexString(hash));
             boolean flag = SM3Util.verify(SRC_DATA, hash);
+            if (!flag) {
+                Assert.fail();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testHashAndVerify1() {
+        try {
+            String data = "chenlw";
+            byte[] hash = SM3Util.hash(data.getBytes(StandardCharsets.UTF_8.name()));
+            System.out.println("SM3 hash result:\n" + ByteUtils.toHexString(hash));
+            boolean flag = SM3Util.verify(data.getBytes(StandardCharsets.UTF_8.name()), hash);
             if (!flag) {
                 Assert.fail();
             }
