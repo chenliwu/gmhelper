@@ -1,6 +1,7 @@
 package org.zz.gmhelper.test;
 
 import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
+import org.bouncycastle.util.encoders.Base64;
 import org.junit.Assert;
 import org.junit.Test;
 import org.zz.gmhelper.SM3Util;
@@ -29,7 +30,11 @@ public class SM3UtilTest extends GMBaseTest {
         try {
             String data = "chenlw";
             byte[] hash = SM3Util.hash(data.getBytes(StandardCharsets.UTF_8.name()));
-            System.out.println("SM3 hash result:\n" + ByteUtils.toHexString(hash));
+            System.out.println("hash:" + Arrays.toString(hash));
+            System.out.println("SM3 hash HexString:\n" + ByteUtils.toHexString(hash));
+            String hashBase64String = Base64.toBase64String(hash);
+            System.out.println("SM3 Base64 String:\n" + hashBase64String);
+            System.out.println("hash:\n" + Arrays.toString(Base64.decode(hashBase64String)));
             boolean flag = SM3Util.verify(data.getBytes(StandardCharsets.UTF_8.name()), hash);
             if (!flag) {
                 Assert.fail();
