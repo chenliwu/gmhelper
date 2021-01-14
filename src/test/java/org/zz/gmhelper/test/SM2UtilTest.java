@@ -74,8 +74,10 @@ public class SM2UtilTest extends GMBaseTest {
             System.out.println("Pub Point Hex:"
                 + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
 
+            // 使用公钥加密
             byte[] encryptedData = SM2Util.encrypt(pubKey, SRC_DATA_24B);
             System.out.println("SM2 encrypt result:\n" + ByteUtils.toHexString(encryptedData));
+            // 使用私钥解密
             byte[] decryptedData = SM2Util.decrypt(priKey, encryptedData);
             System.out.println("SM2 decrypt result:\n" + ByteUtils.toHexString(decryptedData));
             if (!Arrays.equals(decryptedData, SRC_DATA_24B)) {

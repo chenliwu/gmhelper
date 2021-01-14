@@ -8,6 +8,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
+import org.bouncycastle.util.encoders.Base64;
 import org.junit.Assert;
 import org.junit.Test;
 import org.zz.gmhelper.BCECUtil;
@@ -21,9 +22,11 @@ import org.zz.gmhelper.cert.SM2X509CertMaker;
 import org.zz.gmhelper.test.GMBaseTest;
 import org.zz.gmhelper.test.util.FileUtil;
 
-import java.security.KeyPair;
-import java.security.Security;
+import java.io.*;
+import java.security.*;
 import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
 
 public class SM2CertUtilTest {
@@ -36,6 +39,92 @@ public class SM2CertUtilTest {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
+    }
+
+    /**
+     * 获取私钥对象
+     *
+     * @param inputStream
+     *            私钥输入流
+     * @param keyAlgorithm
+     *            密钥算法
+     * @return 私钥对象
+     * @throws Exception
+     */
+    @SuppressWarnings("deprecation")
+    public static PrivateKey getPrivateKey(InputStream inputStream, String keyAlgorithm) throws Exception {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder sb = new StringBuilder();
+            String readLine = null;
+            while ((readLine = br.readLine()) != null) {
+                if (readLine.charAt(0) == '-') {
+                    continue;
+                } else {
+                    sb.append(readLine);
+                    sb.append('\r');
+                }
+            }
+
+            java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+            // PKCS8EncodedKeySpec priPKCS8 = new PKCS8EncodedKeySpec( Base64.getDecoder().decode(sb.toString().getBytes()));
+            PKCS8EncodedKeySpec priPKCS8 = new PKCS8EncodedKeySpec(Base64.decode(sb.toString().getBytes()));
+            KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
+            PrivateKey privateKey = keyFactory.generatePrivate(priPKCS8);
+            return privateKey;
+        } catch (FileNotFoundException e) {
+            throw new Exception("私钥路径文件不存在");
+        } catch (IOException e) {
+            throw new Exception("读取私钥异常");
+        } catch (NoSuchAlgorithmException e) {
+            throw new Exception("生成私钥对象异常");
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+            throw new Exception("生成私钥对象异常");
+
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+    }
+
+    @Test
+    public void testGetPemCer(){
+        try {
+            X509Certificate cert = SM2CertUtil.getX509Certificate("target/test.sm2.cer");
+            BCECPublicKey pubKey = SM2CertUtil.getBCECPublicKey(cert);
+            byte[] priKeyData = FileUtil.readFile("target/test.sm2.pri");
+            ECPrivateKeyParameters priKeyParameters = BCECUtil.convertSEC1ToECPrivateKey(priKeyData);
+
+            byte[] sign = SM2Util.sign(priKeyParameters, GMBaseTest.WITH_ID, GMBaseTest.SRC_DATA);
+            System.out.println("SM2 sign with withId result:\n" + ByteUtils.toHexString(sign));
+            boolean flag = SM2Util.verify(pubKey, GMBaseTest.WITH_ID, GMBaseTest.SRC_DATA, sign);
+            if (!flag) {
+                Assert.fail("[withId] verify failed");
+            }
+
+            sign = SM2Util.sign(priKeyParameters, GMBaseTest.SRC_DATA);
+            System.out.println("SM2 sign without withId result:\n" + ByteUtils.toHexString(sign));
+            flag = SM2Util.verify(pubKey, GMBaseTest.SRC_DATA, sign);
+            if (!flag) {
+                Assert.fail("verify failed");
+            }
+
+            byte[] cipherText = SM2Util.encrypt(pubKey, GMBaseTest.SRC_DATA);
+            System.out.println("SM2 encrypt result:\n" + ByteUtils.toHexString(cipherText));
+            byte[] plain = SM2Util.decrypt(priKeyParameters, cipherText);
+            System.out.println("SM2 decrypt result:\n" + ByteUtils.toHexString(plain));
+            if (!Arrays.equals(plain, GMBaseTest.SRC_DATA)) {
+                Assert.fail("plain not equals the src");
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Assert.fail();
+        }
     }
 
     @Test
