@@ -8,6 +8,7 @@ import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
+import org.bouncycastle.util.encoders.Base64;
 import org.junit.Assert;
 import org.junit.Test;
 import org.zz.gmhelper.BCECUtil;
@@ -15,6 +16,7 @@ import org.zz.gmhelper.SM2Util;
 import org.zz.gmhelper.test.util.FileUtil;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.Arrays;
 
@@ -28,14 +30,14 @@ public class SM2UtilTest extends GMBaseTest {
             ECPublicKeyParameters pubKey = (ECPublicKeyParameters) keyPair.getPublic();
 
             System.out.println("Pri Hex:"
-                + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
+                    + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
             System.out.println("Pub Point Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
-
+                    + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
+            // 用私钥
             byte[] sign = SM2Util.sign(priKey, WITH_ID, SRC_DATA);
             System.out.println("SM2 sign with withId result:\n" + ByteUtils.toHexString(sign));
             byte[] rawSign = SM2Util.decodeDERSM2Sign(sign);
@@ -66,13 +68,13 @@ public class SM2UtilTest extends GMBaseTest {
             ECPublicKeyParameters pubKey = (ECPublicKeyParameters) keyPair.getPublic();
 
             System.out.println("Pri Hex:"
-                + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
+                    + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
             System.out.println("Pub Point Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
 
             // 使用公钥加密
             byte[] encryptedData = SM2Util.encrypt(pubKey, SRC_DATA_24B);
@@ -97,13 +99,13 @@ public class SM2UtilTest extends GMBaseTest {
             ECPublicKeyParameters pubKey = (ECPublicKeyParameters) keyPair.getPublic();
 
             System.out.println("Pri Hex:"
-                + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
+                    + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
             System.out.println("Pub Point Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
 
             byte[] encryptedData = SM2Util.encrypt(Mode.C1C3C2, pubKey, SRC_DATA_48B);
             System.out.println("SM2 encrypt result:\n" + ByteUtils.toHexString(encryptedData));
@@ -116,6 +118,45 @@ public class SM2UtilTest extends GMBaseTest {
             ex.printStackTrace();
             Assert.fail();
         }
+    }
+
+    /**
+     * 测试从 .pem读取私钥和公钥
+     */
+    @Test
+    public void testGetKeyFromFile() {
+        try {
+            // 从.pem文件读取私钥
+            byte[] primaryKeyByte = FileUtil.readFile("target/ec.pkcs8.pri.pem");
+            String priKeyPerString = new String(primaryKeyByte, "UTF-8");
+            System.out.println("==========私钥perString==========");
+            System.out.println(priKeyPerString);
+            byte[] priKeyFromPem = BCECUtil.convertECPrivateKeyPEMToPKCS8(priKeyPerString);
+            BCECPrivateKey priKey = BCECUtil.convertPKCS8ToECPrivateKey(priKeyFromPem);
+            Assert.assertNotNull(priKey);
+
+            // 从.pem文件读取公钥
+            String pubKeyX509PemString = new String(FileUtil.readFile("target/ec.x509.pub.pem"), "UTF-8");
+            System.out.println();
+            System.out.println("==========公钥perString=======");
+            System.out.println(pubKeyX509PemString);
+            byte[] pubKeyX509Byte = BCECUtil.convertECPublicKeyPEMToX509(pubKeyX509PemString);
+            BCECPublicKey publicKey = BCECUtil.convertX509ToECPublicKey(pubKeyX509Byte);
+            Assert.assertNotNull(publicKey);
+
+            String strData = "测试报文数据";
+            // 用公钥加密
+            byte[] encryptedByteData = SM2Util.encrypt(publicKey, strData.getBytes(StandardCharsets.UTF_8));
+            System.out.println("加密后的base64数据:" + Base64.toBase64String(encryptedByteData));
+
+            // 用私钥解密
+            byte[] decryptByteData = SM2Util.decrypt(priKey, encryptedByteData);
+            System.out.println("解密后的数据：" + new String(decryptByteData, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            System.out.println("异常：" + e.getMessage());
+            Assert.fail();
+        }
+
     }
 
     @Test
@@ -174,7 +215,7 @@ public class SM2UtilTest extends GMBaseTest {
             byte[] withId = ByteUtils.fromHexString("31323334353637383132333435363738");
 
             ECPrivateKeyParameters priKey = new ECPrivateKeyParameters(
-                new BigInteger(ByteUtils.fromHexString(priHex)), SM2Util.DOMAIN_PARAMS);
+                    new BigInteger(ByteUtils.fromHexString(priHex)), SM2Util.DOMAIN_PARAMS);
             ECPublicKeyParameters pubKey = BCECUtil.createECPublicKeyParameters(xHex, yHex, SM2Util.CURVE, SM2Util.DOMAIN_PARAMS);
 
             if (!SM2Util.verify(pubKey, src, signBytes)) {
@@ -194,13 +235,13 @@ public class SM2UtilTest extends GMBaseTest {
             ECPublicKeyParameters pubKey = (ECPublicKeyParameters) keyPair.getPublic();
 
             System.out.println("Pri Hex:"
-                + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
+                    + ByteUtils.toHexString(priKey.getD().toByteArray()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineXCoord().getEncoded()).toUpperCase());
             System.out.println("Pub X Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
             System.out.println("Pub Point Hex:"
-                + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
+                    + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
         } catch (Exception ex) {
             ex.printStackTrace();
             Assert.fail();
