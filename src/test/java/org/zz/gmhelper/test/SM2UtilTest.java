@@ -37,7 +37,7 @@ public class SM2UtilTest extends GMBaseTest {
                     + ByteUtils.toHexString(pubKey.getQ().getAffineYCoord().getEncoded()).toUpperCase());
             System.out.println("Pub Point Hex:"
                     + ByteUtils.toHexString(pubKey.getQ().getEncoded(false)).toUpperCase());
-            // 用私钥
+            // 用私钥签名
             byte[] sign = SM2Util.sign(priKey, WITH_ID, SRC_DATA);
             System.out.println("SM2 sign with withId result:\n" + ByteUtils.toHexString(sign));
             byte[] rawSign = SM2Util.decodeDERSM2Sign(sign);
@@ -121,6 +121,19 @@ public class SM2UtilTest extends GMBaseTest {
     }
 
     /**
+     * 生成.pem证书文件
+     */
+    @Test
+    public void testGeneratePemFile() {
+        try {
+
+        } catch (Exception e) {
+            System.out.println("异常：" + e.getMessage());
+            Assert.fail();
+        }
+    }
+
+    /**
      * 测试从 .pem读取私钥和公钥
      */
     @Test
@@ -152,6 +165,46 @@ public class SM2UtilTest extends GMBaseTest {
             // 用私钥解密
             byte[] decryptByteData = SM2Util.decrypt(priKey, encryptedByteData);
             System.out.println("解密后的数据：" + new String(decryptByteData, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            System.out.println("异常：" + e.getMessage());
+            Assert.fail();
+        }
+
+    }
+
+    /**
+     * 测试从 .pem读取私钥和公钥  签名和验签
+     */
+    @Test
+    public void testGetKeyFromFileToSign() {
+        try {
+            // 从.pem文件读取私钥
+            byte[] primaryKeyByte = FileUtil.readFile("target/ec.pkcs8.pri.pem");
+            String priKeyPerString = new String(primaryKeyByte, "UTF-8");
+            System.out.println("==========私钥perString==========");
+            System.out.println(priKeyPerString);
+            byte[] priKeyFromPem = BCECUtil.convertECPrivateKeyPEMToPKCS8(priKeyPerString);
+            BCECPrivateKey priKey = BCECUtil.convertPKCS8ToECPrivateKey(priKeyFromPem);
+            Assert.assertNotNull(priKey);
+
+            // 从.pem文件读取公钥
+            String pubKeyX509PemString = new String(FileUtil.readFile("target/ec.x509.pub.pem"), "UTF-8");
+            System.out.println();
+            System.out.println("==========公钥perString=======");
+            System.out.println(pubKeyX509PemString);
+            byte[] pubKeyX509Byte = BCECUtil.convertECPublicKeyPEMToX509(pubKeyX509PemString);
+            BCECPublicKey publicKey = BCECUtil.convertX509ToECPublicKey(pubKeyX509Byte);
+            Assert.assertNotNull(publicKey);
+
+            String srcData = "测试报文数据";
+            // 签名
+            byte[] sign = SM2Util.sign(priKey, srcData.getBytes(StandardCharsets.UTF_8));
+            System.out.println("SM2 sign without withId result:\n" + ByteUtils.toHexString(sign));
+            // 签名验证
+            boolean flag = SM2Util.verify(publicKey, srcData.getBytes(StandardCharsets.UTF_8), sign);
+            if (!flag) {
+                Assert.fail("verify failed");
+            }
         } catch (Exception e) {
             System.out.println("异常：" + e.getMessage());
             Assert.fail();
