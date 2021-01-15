@@ -1,7 +1,6 @@
 package org.zz.gmhelper.test;
 
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.crypto.engines.SM2Engine.Mode;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
@@ -13,11 +12,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.zz.gmhelper.BCECUtil;
 import org.zz.gmhelper.SM2Util;
-import org.zz.gmhelper.test.util.FileUtil;
+import org.zz.gmhelper.FileUtil;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.util.Arrays;
 
 public class SM2UtilTest extends GMBaseTest {
@@ -126,7 +126,19 @@ public class SM2UtilTest extends GMBaseTest {
     @Test
     public void testGeneratePemFile() {
         try {
+            AsymmetricCipherKeyPair keyPair = SM2Util.generateKeyPairParameter();
+            ECPrivateKeyParameters priKey = (ECPrivateKeyParameters) keyPair.getPrivate();
+            ECPublicKeyParameters pubKey = (ECPublicKeyParameters) keyPair.getPublic();
 
+            byte[] priKeyPkcs8Der = BCECUtil.convertECPrivateKeyToPKCS8(priKey, pubKey);
+            String priKeyPkcs8Pem = BCECUtil.convertECPrivateKeyPKCS8ToPEM(priKeyPkcs8Der);
+            // 导出私钥到.pem文件
+            FileUtil.writeFile("target/ec.pkcs8.pri.pem", priKeyPkcs8Pem.getBytes("UTF-8"));
+
+            byte[] pubKeyX509Der = BCECUtil.convertECPublicKeyToX509(pubKey);
+            String pubKeyX509Pem = BCECUtil.convertECPublicKeyX509ToPEM(pubKeyX509Der);
+            // 导出公钥到.pem文件
+            FileUtil.writeFile("target/ec.x509.pub.pem", pubKeyX509Pem.getBytes("UTF-8"));
         } catch (Exception e) {
             System.out.println("异常：" + e.getMessage());
             Assert.fail();
@@ -171,6 +183,26 @@ public class SM2UtilTest extends GMBaseTest {
         }
 
     }
+
+
+    /**
+     * 测试从 .pem读取私钥
+     */
+    @Test
+    public void testGetPrimaryKey() {
+        try {
+            byte[] primaryKeyByte = FileUtil.readFile("target/ec.pkcs8.pri.pem");
+            String priKeyPerString = new String(primaryKeyByte, "UTF-8");
+            System.out.println(priKeyPerString);
+            byte[] priKeyFromPem = BCECUtil.convertECPrivateKeyPEMToPKCS8(priKeyPerString);
+            PrivateKey privateKey = BCECUtil.convertPKCS8ToECPrivateKey(priKeyFromPem);
+        } catch (Exception e) {
+            System.out.println("异常：" + e.getMessage());
+            Assert.fail();
+        }
+
+    }
+
 
     /**
      * 测试从 .pem读取私钥和公钥  签名和验签

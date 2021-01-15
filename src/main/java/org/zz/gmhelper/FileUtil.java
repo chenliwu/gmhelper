@@ -1,4 +1,4 @@
-package org.zz.gmhelper.test.util;
+package org.zz.gmhelper;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

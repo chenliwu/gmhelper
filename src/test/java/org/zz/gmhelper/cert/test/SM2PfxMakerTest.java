@@ -21,7 +21,7 @@ import org.zz.gmhelper.cert.SM2CertUtil;
 import org.zz.gmhelper.cert.SM2PfxMaker;
 import org.zz.gmhelper.cert.SM2PublicKey;
 import org.zz.gmhelper.cert.SM2X509CertMaker;
-import org.zz.gmhelper.test.util.FileUtil;
+import org.zz.gmhelper.FileUtil;
 
 public class SM2PfxMakerTest {
     static {

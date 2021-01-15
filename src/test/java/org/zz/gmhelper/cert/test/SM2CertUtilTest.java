@@ -14,7 +14,7 @@ import org.zz.gmhelper.BCECUtil;
 import org.zz.gmhelper.SM2Util;
 import org.zz.gmhelper.cert.*;
 import org.zz.gmhelper.test.GMBaseTest;
-import org.zz.gmhelper.test.util.FileUtil;
+import org.zz.gmhelper.FileUtil;
 
 import java.security.KeyPair;
 import java.security.Security;
